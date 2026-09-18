@@ -13,8 +13,8 @@ public class Hook implements IXposedHookLoadPackage {
     private static final String TARGET = "com.getsurfboard";
     private static final int TIMEOUT_MS = 1000;
 
-    // MODE: 0=全量改写  1=只改 gstatic 线程  2=除 gstatic 外全部改写（排除法）
-    private static final int MODE = 2;
+    // MODE: 0=全量  1=只gstatic  2=除gstatic外全部  3=只ce3 connect检测线程
+    private static final int MODE = 3;
 
     private static final Map<String, int[]> stats = new HashMap<String, int[]>();
     private static long lastStats = 0;
@@ -31,7 +31,8 @@ public class Hook implements IXposedHookLoadPackage {
                 boolean hit;
                 if (MODE == 0) hit = true;
                 else if (MODE == 1) hit = isGstatic;
-                else hit = !isGstatic; // MODE 2
+                else if (MODE == 2) hit = !isGstatic;
+                else hit = tname.startsWith("ce3 connect"); // MODE 3
                 if (!hit) return;
 
                 int orig;
