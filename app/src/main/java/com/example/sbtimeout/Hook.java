@@ -23,6 +23,7 @@ public class Hook implements IXposedHookLoadPackage {
         long ov = overrideMs();
         XposedBridge.log("[SBTimeout] 模块已注入 Surfboard，override=" + ov);
         Log.i(TAG, "模块已注入 Surfboard，override=" + ov);
+        diagConf();
 
         Log.i(TAG, "OkHttpClient$Builder 类存在=" + (XposedHelpers.findClassIfExists("okhttp3.OkHttpClient$Builder", lp.classLoader) != null));
         hookOkHttpBuilder(lp);
@@ -138,10 +139,44 @@ public class Hook implements IXposedHookLoadPackage {
         }
     }
 
+    private static final String[] CONF_PATHS = {
+            "/sdcard/Download/sb_timeout.json",
+            "/storage/emulated/0/Download/sb_timeout.json"
+    };
+
+    private static void diagConf() {
+        for (String p : CONF_PATHS) {
+            try {
+                java.io.File f = new java.io.File(p);
+                Log.i(TAG, "配置诊断: " + p + " 存在=" + f.exists() + (f.exists() ? " 内容=" + readFile(f) : ""));
+                XposedBridge.log("[SBTimeout] conf " + p + " exists=" + f.exists());
+            } catch (Throwable t) {
+                Log.e(TAG, "配置诊断失败 " + p, t);
+            }
+        }
+    }
+
+    private static String readFile(java.io.File f) throws Exception {
+        BufferedReader r = new BufferedReader(new FileReader(f));
+        StringBuilder sb = new StringBuilder();
+        String l;
+        while ((l = r.readLine()) != null) sb.append(l);
+        r.close();
+        return sb.toString();
+    }
+
     private static long overrideMs() {
+        for (String p : CONF_PATHS) {
+            long v = overrideMs(p);
+            if (v > 0) return v;
+        }
+        return -1;
+    }
+
+    private static long overrideMs(String path) {
         BufferedReader r = null;
         try {
-            r = new BufferedReader(new FileReader(CONF));
+            r = new BufferedReader(new FileReader(path));
             StringBuilder sb = new StringBuilder();
             String l;
             while ((l = r.readLine()) != null) sb.append(l);
