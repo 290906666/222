@@ -2,12 +2,14 @@ package com.example.sbtimeout;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.widget.Toast;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        Toast.makeText(this, "SBTimeout 模块运行正常，请在 LSPosed 中确认作用域已勾选 Surfboard", Toast.LENGTH_LONG).show();
         TextView tv = new TextView(this);
         tv.setTextSize(14f);
         tv.setPadding(40, 40, 40, 40);

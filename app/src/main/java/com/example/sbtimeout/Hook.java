@@ -1,5 +1,8 @@
 package com.example.sbtimeout;
 
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
 import android.util.Log;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -21,7 +24,19 @@ public class Hook implements IXposedHookLoadPackage {
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lp) {
         if (!TARGET.equals(lp.packageName)) return;
-        Log.i(TAG, "hook 已加载，目标=" + TARGET + " 当前override=" + overrideMs());
+        final long ov = overrideMs();
+        final String msg = "SBTimeout 已注入 Surfboard，override=" + (ov > 0 ? ov + "ms" : "未设置(仅记录日志)");
+        Log.i(TAG, "hook 已加载，目标=" + TARGET + " 当前override=" + ov);
+        XposedBridge.log("[SBTimeout] " + msg);
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override public void run() {
+                try {
+                    android.content.Context ctx = de.robv.android.xposed.AndroidAppHelper.currentApplication();
+                    if (ctx == null) ctx = lp.thisObject instanceof android.content.Context ? (android.content.Context) lp.thisObject : null;
+                    if (ctx != null) Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show();
+                } catch (Throwable t) { Log.e(TAG, "toast失败", t); }
+            }
+        });
 
         hookOkHttpBuilder(lp);
         hookUrlConnection();
