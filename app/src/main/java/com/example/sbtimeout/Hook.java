@@ -23,7 +23,10 @@ public class Hook implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lp) {
+        // 调试：无论是否目标包，都记录一次（只在 logcat 可见，避免刷 LSPosed 日志）
+        Log.i(TAG, "[调试] 模块代码已运行，当前包=" + lp.packageName + " process=" + lp.processName);
         if (!TARGET.equals(lp.packageName)) return;
+        Log.i(TAG, "[调试] 命中目标包 " + TARGET);
         final long ov = overrideMs();
         final String msg = "SBTimeout 已注入 Surfboard，override=" + (ov > 0 ? ov + "ms" : "未设置(仅记录日志)");
         Log.i(TAG, "hook 已加载，目标=" + TARGET + " 当前override=" + ov);
