@@ -165,12 +165,14 @@ public class Hook implements IXposedHookLoadPackage {
         return sb.toString();
     }
 
+    private static final long DEFAULT_OVERRIDE = 1000; // 默认1秒，配置文件优先
+
     private static long overrideMs() {
         for (String p : CONF_PATHS) {
             long v = overrideMs(p);
             if (v > 0) return v;
         }
-        return -1;
+        return DEFAULT_OVERRIDE;
     }
 
     private static long overrideMs(String path) {
