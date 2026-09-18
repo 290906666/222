@@ -51,9 +51,13 @@ public class Hook implements IXposedHookLoadPackage {
                 @Override protected void beforeHookedMethod(MethodHookParam p) {
                     int orig = (Integer) p.args[0];
                     long ov = overrideMs();
-                    Log.i(TAG, "Socket.setSoTimeout 原始=" + orig + "ms" + (ov > 0 ? " 改写=" + ov + "ms" : ""));
-                    XposedBridge.log("[SBTimeout] Socket.setSoTimeout timeout=" + orig);
                     if (ov > 0) p.args[0] = (int) ov;
+                    String st = stack();
+                    // 同一调用来源只打一次
+                    if (dup(st)) return;
+                    String line = "Socket.setSoTimeout 原始=" + orig + "ms 改写=" + ov + "ms" + st;
+                    Log.i(TAG, line);
+                    XposedBridge.log("[SBTimeout] " + line);
                 }
             });
         } catch (Throwable t) {
@@ -199,11 +203,22 @@ public class Hook implements IXposedHookLoadPackage {
 
     private static String stack() {
         StringBuilder sb = new StringBuilder();
+        sb.append(" [线程=").append(Thread.currentThread().getName()).append("]");
         for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
             String c = e.getClassName();
-            if (c.startsWith("de.robv") || c.startsWith("com.example.sbtimeout") || c.startsWith("dalvik")) continue;
-            sb.append("    at ").append(e).append('\n');
+            // 只看 Surfboard 自己的代码（混淆后包名前缀不变）
+            if (!c.startsWith("com.getsurfboard")) continue;
+            sb.append("\n    at ").append(e);
         }
         return sb.toString();
+    }
+
+    private static String lastSig = "";
+    private static boolean dup(String sig) {
+        synchronized (Hook.class) {
+            if (sig.equals(lastSig)) return true;
+            lastSig = sig;
+            return false;
+        }
     }
 }
