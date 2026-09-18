@@ -2,11 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     
 <application
-        android:label="SBTimeout"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher"
+        android:label="Surfboard测速超时调整"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:allowBackup="true">
         <meta-data android:name="xposedmodule" android:value="true" />
-        <meta-data android:name="xposeddescription" android:value="定位并覆盖 Surfboard 测速超时时间" />
+        <meta-data android:name="xposeddescription" android:value="将 Surfboard 节点测速超时时间改为1秒" />
         <meta-data android:name="xposedminversion" android:value="82" />
         <meta-data android:name="xposedscope" android:value="com.getsurfboard" />
     </application>
