@@ -15,7 +15,7 @@ public class Hook implements IXposedHookLoadPackage {
 
     // MODE: 4=只DefaultDispatcher 5=只DefaultDispatcher的connect 6=只DefaultDispatcher的setSoTimeout
     // MODE: 7=只DefaultDispatcher且原始=0 8=只DefaultDispatcher且原始=10000 9=只DefaultDispatcher且原始>1000
-    private static final int MODE = 5;
+    private static final int MODE = 7;
 
     private static final Map<String, int[]> stats = new HashMap<String, int[]>();
     private static long lastStats = 0;
