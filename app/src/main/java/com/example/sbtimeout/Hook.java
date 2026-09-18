@@ -24,9 +24,40 @@ public class Hook implements IXposedHookLoadPackage {
         XposedBridge.log("[SBTimeout] 模块已注入 Surfboard，override=" + ov);
         Log.i(TAG, "模块已注入 Surfboard，override=" + ov);
 
+        Log.i(TAG, "OkHttpClient$Builder 类存在=" + (XposedHelpers.findClassIfExists("okhttp3.OkHttpClient$Builder", lp.classLoader) != null));
         hookOkHttpBuilder(lp);
         hookUrlConnection();
         hookOkHttpCtor(lp);
+        hookSocket(lp);
+    }
+
+    // Socket 层：connect(SocketAddress,int) 和 setSoTimeout(int)
+    private void hookSocket(XC_LoadPackage.LoadPackageParam lp) {
+        try {
+            XposedBridge.hookAllMethods(java.net.Socket.class, "connect", new XC_MethodHook() {
+                @Override protected void beforeHookedMethod(MethodHookParam p) {
+                    if (p.args.length == 2 && p.args[1] instanceof Integer) {
+                        int orig = (Integer) p.args[1];
+                        long ov = overrideMs();
+                        String s = "Socket.connect timeout 原始=" + orig + "ms" + (ov > 0 ? " 改写=" + ov + "ms" : "") + "\n" + stack();
+                        Log.i(TAG, s);
+                        XposedBridge.log("[SBTimeout] " + s);
+                        if (ov > 0) p.args[1] = (int) ov;
+                    }
+                }
+            });
+            XposedBridge.hookAllMethods(java.net.Socket.class, "setSoTimeout", new XC_MethodHook() {
+                @Override protected void beforeHookedMethod(MethodHookParam p) {
+                    int orig = (Integer) p.args[0];
+                    long ov = overrideMs();
+                    Log.i(TAG, "Socket.setSoTimeout 原始=" + orig + "ms" + (ov > 0 ? " 改写=" + ov + "ms" : ""));
+                    XposedBridge.log("[SBTimeout] Socket.setSoTimeout timeout=" + orig);
+                    if (ov > 0) p.args[0] = (int) ov;
+                }
+            });
+        } catch (Throwable t) {
+            Log.e(TAG, "hook Socket 失败", t);
+        }
     }
 
     private void hookOkHttpBuilder(XC_LoadPackage.LoadPackageParam lp) {
@@ -42,9 +73,11 @@ public class Hook implements IXposedHookLoadPackage {
                     @Override protected void beforeHookedMethod(MethodHookParam p) {
                         long orig = toMs(p.args[0], p.args[1]);
                         long ov = overrideMs();
-                        XposedBridge.log("[SBTimeout] OkHttp.Builder." + p.method.getName()
+                        String line = "OkHttp.Builder." + p.method.getName()
                                 + " 原始=" + orig + "ms" + (ov > 0 ? " 改写=" + ov + "ms" : "")
-                                + "\\n" + stack());
+                                + "\\n" + stack();
+                        Log.i(TAG, line);
+                        XposedBridge.log("[SBTimeout] " + line);
                         if (ov > 0) {
                             p.args[0] = ov;
                             p.args[1] = TimeUnit.MILLISECONDS;
@@ -60,16 +93,16 @@ public class Hook implements IXposedHookLoadPackage {
             XposedBridge.hookAllMethods(java.net.URLConnection.class, "setConnectTimeout", new XC_MethodHook() {
                 @Override protected void beforeHookedMethod(MethodHookParam p) {
                     long ov = overrideMs();
-                    XposedBridge.log("[SBTimeout] URLConnection.setConnectTimeout 原始=" + p.args[0]
-                            + (ov > 0 ? " 改写=" + ov : ""));
+                    Log.i(TAG, "URLConnection.setConnectTimeout 原始=" + p.args[0] + (ov > 0 ? " 改写=" + ov : ""));
+                    XposedBridge.log("[SBTimeout] URLConnection.setConnectTimeout 原始=" + p.args[0] + (ov > 0 ? " 改写=" + ov : ""));
                     if (ov > 0) p.args[0] = (int) ov;
                 }
             });
             XposedBridge.hookAllMethods(java.net.URLConnection.class, "setReadTimeout", new XC_MethodHook() {
                 @Override protected void beforeHookedMethod(MethodHookParam p) {
                     long ov = overrideMs();
-                    XposedBridge.log("[SBTimeout] URLConnection.setReadTimeout 原始=" + p.args[0]
-                            + (ov > 0 ? " 改写=" + ov : ""));
+                    Log.i(TAG, "URLConnection.setReadTimeout 原始=" + p.args[0] + (ov > 0 ? " 改写=" + ov : ""));
+                    XposedBridge.log("[SBTimeout] URLConnection.setReadTimeout 原始=" + p.args[0] + (ov > 0 ? " 改写=" + ov : ""));
                     if (ov > 0) p.args[0] = (int) ov;
                 }
             });
@@ -90,6 +123,7 @@ public class Hook implements IXposedHookLoadPackage {
                             sb.append(f).append('=').append(XposedHelpers.getObjectField(builder, f)).append(' ');
                         } catch (Throwable ignored) {}
                     }
+                    Log.i(TAG, sb.toString());
                     XposedBridge.log(sb.toString());
                 }
             });
