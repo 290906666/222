@@ -21,7 +21,9 @@ public class Hook implements IXposedHookLoadPackage {
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lp) {
         if (!TARGET.equals(lp.packageName)) return;
-        Log.i(TAG, "SBTimeout 已注入，测速线程过滤=" + THREAD_FILTER + " 默认超时=" + DEFAULT_OVERRIDE + "ms");
+        String boot = "SBTimeout 已注入，测速线程过滤=" + THREAD_FILTER + " 默认超时=" + DEFAULT_OVERRIDE + "ms";
+        Log.i(TAG, boot);
+        XposedBridge.log("[SBTimeout] " + boot);
 
         XC_MethodHook rewriter = new XC_MethodHook() {
             @Override protected void beforeHookedMethod(MethodHookParam p) {
@@ -36,7 +38,9 @@ public class Hook implements IXposedHookLoadPackage {
                 }
                 if (!announced) {
                     announced = true;
-                    Log.i(TAG, "已改写测速线程超时 -> " + ov + "ms (线程=" + tname + ")");
+                    String s = "已改写测速线程超时 -> " + ov + "ms (线程=" + tname + ")";
+                    Log.i(TAG, s);
+                    XposedBridge.log("[SBTimeout] " + s);
                 }
             }
         };
