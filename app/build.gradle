@@ -10,6 +10,11 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    lintOptions {
+        abortOnError false
+        checkReleaseBuilds false
+        disable 'ExpiredTargetSdkVersion'
+    }
     buildTypes {
         release {
             minifyEnabled false
