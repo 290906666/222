@@ -75,7 +75,7 @@ public class Hook implements IXposedHookLoadPackage {
                         long ov = overrideMs();
                         String line = "OkHttp.Builder." + p.method.getName()
                                 + " 原始=" + orig + "ms" + (ov > 0 ? " 改写=" + ov + "ms" : "")
-                                + "\\n" + stack();
+                                + "\n" + stack();
                         Log.i(TAG, line);
                         XposedBridge.log("[SBTimeout] " + line);
                         if (ov > 0) {
@@ -165,7 +165,7 @@ public class Hook implements IXposedHookLoadPackage {
         for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
             String c = e.getClassName();
             if (c.startsWith("de.robv") || c.startsWith("com.example.sbtimeout") || c.startsWith("dalvik")) continue;
-            sb.append("    at ").append(e).append('\\n');
+            sb.append("    at ").append(e).append('\n');
         }
         return sb.toString();
     }
