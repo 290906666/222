@@ -13,8 +13,9 @@ public class Hook implements IXposedHookLoadPackage {
     private static final String TARGET = "com.getsurfboard";
     private static final int TIMEOUT_MS = 1000;
 
-    // MODE: 0=全量 1=只gstatic 2=除gstatic外全部 3=只ce3 4=只DefaultDispatcher
-    private static final int MODE = 4;
+    // MODE: 4=只DefaultDispatcher 5=只DefaultDispatcher的connect 6=只DefaultDispatcher的setSoTimeout
+    // MODE: 7=只DefaultDispatcher且原始=0 8=只DefaultDispatcher且原始=10000 9=只DefaultDispatcher且原始>1000
+    private static final int MODE = 5;
 
     private static final Map<String, int[]> stats = new HashMap<String, int[]>();
     private static long lastStats = 0;
@@ -33,7 +34,19 @@ public class Hook implements IXposedHookLoadPackage {
                 else if (MODE == 1) hit = isGstatic;
                 else if (MODE == 2) hit = !isGstatic;
                 else if (MODE == 3) hit = tname.startsWith("ce3 connect");
-                else hit = tname.startsWith("DefaultDispatcher"); // MODE 4
+                else if (MODE == 4) hit = tname.startsWith("DefaultDispatcher");
+                else if (MODE == 5) hit = tname.startsWith("DefaultDispatcher") && p.method.getName().equals("connect");
+                else if (MODE == 6) hit = tname.startsWith("DefaultDispatcher") && p.method.getName().equals("setSoTimeout");
+                else if (MODE >= 7) {
+                    // 先取原始值再判断
+                    int orig0 = -1;
+                    if (p.args.length == 2 && p.args[1] instanceof Integer) orig0 = (Integer) p.args[1];
+                    else if (p.args.length == 1 && p.args[0] instanceof Integer) orig0 = (Integer) p.args[0];
+                    hit = tname.startsWith("DefaultDispatcher")
+                            && ((MODE == 7 && orig0 == 0)
+                             || (MODE == 8 && orig0 == 10000)
+                             || (MODE == 9 && orig0 > 1000));
+                }
                 if (!hit) return;
 
                 int orig;
