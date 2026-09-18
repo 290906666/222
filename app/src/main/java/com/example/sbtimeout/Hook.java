@@ -28,20 +28,47 @@ public class Hook implements IXposedHookLoadPackage {
         final String msg = "SBTimeout 已注入 Surfboard，override=" + (ov > 0 ? ov + "ms" : "未设置(仅记录日志)");
         Log.i(TAG, "hook 已加载，目标=" + TARGET + " 当前override=" + ov);
         XposedBridge.log("[SBTimeout] " + msg);
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            @Override public void run() {
-                try {
-                    android.content.Context ctx = de.robv.android.xposed.AndroidAppHelper.currentApplication();
-                    if (ctx == null) ctx = lp.thisObject instanceof android.content.Context ? (android.content.Context) lp.thisObject : null;
-                    if (ctx != null) Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show();
-                } catch (Throwable t) { Log.e(TAG, "toast失败", t); }
-            }
-        });
 
         hookOkHttpBuilder(lp);
         hookUrlConnection();
         hookOkHttpCtor(lp);
+        showToast(lp, msg);
     }
+
+    // 弹 Toast：优先反射 ActivityThread；失败则 Hook Activity.onCreate 弹
+    private static void showToast(final XC_LoadPackage.LoadPackageParam lp, final String msg) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override public void run() {
+                android.content.Context ctx = null;
+                try {
+                    ctx = (android.content.Context) Class.forName("android.app.ActivityThread")
+                            .getMethod("currentApplication").invoke(null);
+                } catch (Throwable t) { Log.i(TAG, "ActivityThread 反射失败: " + t); }
+                if (ctx != null) {
+                    Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show();
+                } else {
+                    hookActivityForToast(lp, msg);
+                }
+            }
+        });
+    }
+
+    private static boolean toastHooked = false;
+    private static synchronized void hookActivityForToast(XC_LoadPackage.LoadPackageParam lp, final String msg) {
+        if (toastHooked) return;
+        toastHooked = true;
+        try {
+            XposedBridge.hookAllMethods(android.app.Activity.class, "onCreate", new XC_MethodHook() {
+                @Override protected void afterHookedMethod(MethodHookParam p) {
+                    if (p.thisObject != null && !toastShown) {
+                        toastShown = true;
+                        Toast.makeText((android.content.Context) p.thisObject, msg, Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        } catch (Throwable t) { Log.e(TAG, "hook Activity.onCreate 失败", t); }
+    }
+    private static boolean toastShown = false;
 
     // 1) OkHttpClient.Builder 的四个超时方法（最常见入口）
     private void hookOkHttpBuilder(XC_LoadPackage.LoadPackageParam lp) {
